@@ -18,8 +18,28 @@ LOG_FILE_PATH="$HOME/.local/share/cursor/cursor.log"
 # DOWNLOAD LINKS
 # https://github.com/oslook/cursor-ai-downloads?tab=readme-ov-file#all-version-download-links
 
-#DOWNLOAD_URL="https://downloads.cursor.com/production/client/linux/x64/appimage/Cursor-0.47.8-82ef0f61c01d079d1b7e5ab04d88499d5af500e3.deb.glibc2.25-x86_64.AppImage"
-DOWNLOAD_URL="https://downloads.cursor.com/production/client/linux/x64/appimage/Cursor-1.1.5-x86_64.AppImage"
+# Function to get latest download URL from GitHub
+get_latest_download_url() {
+    echo "Fetching latest Cursor download URL from GitHub..." >&2
+    
+    # Get the raw README content from GitHub
+    local readme_content
+    readme_content=$(curl -s "https://raw.githubusercontent.com/oslook/cursor-ai-downloads/main/README.md")
+    
+    # Extract the Linux x64 download URL from the README
+    local download_url
+    download_url=$(echo "$readme_content" | grep -oE 'https://downloads\.cursor\.com/production/[^"]*linux/x64/[^"]*\.AppImage' | head -n 1 | sed 's/^[0-9]*://')
+    
+    if [ -z "$download_url" ]; then
+        echo "Error: Could not fetch latest download URL. Using fallback URL." >&2
+        echo "https://downloads.cursor.com/production/ef5eeb47a684b4c217dfaf0463aa7ea952f8ab95/linux/x64/Cursor-1.1.5-x86_64.AppImage"
+    else
+        echo "$download_url"
+    fi
+}
+
+# Get the latest download URL dynamically
+DOWNLOAD_URL=$(get_latest_download_url)
 APPIMAGE_PREFIX="Cursor-"
 APPIMAGE_SUFFIX="-x86_64.AppImage"
 MAX_KEEP_INSTALLED_VERSIONS=3
@@ -49,26 +69,26 @@ echo "Current: $CURRENT_VERSION"
 echo "Latest : $LATEST_VERSION"
 
 # 3.3: Download new version if not installed
-#if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
-#  echo "Downloading $LATEST_APPIMAGE..."
-#  trap "rm -f ""$APPIMAGE_DIR"/"$LATEST_APPIMAGE""; echo -e '\nDownload cancelled. Cleaning up...'; exit 1" SIGINT
-#  curl -L "$DOWNLOAD_URL" --output "$APPIMAGE_DIR/$LATEST_APPIMAGE"
-#  chmod +x "$APPIMAGE_DIR/$LATEST_APPIMAGE"
-#
-#  # Remove old AppImages, keeping only a constant number of versions
-#  find "$APPIMAGE_DIR" -name "$APPIMAGE_PREFIX*$APPIMAGE_SUFFIX" \
-#    | sort -r \
-#    | tail -n +$((MAX_KEEP_INSTALLED_VERSIONS + 1)) \
-#    | xargs rm -f
-#else
-#  echo "Already downloaded the latest version ($LATEST_VERSION)"
+if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+  echo "Downloading $LATEST_APPIMAGE..."
+  trap "rm -f ""$APPIMAGE_DIR"/"$LATEST_APPIMAGE""; echo -e '\nDownload cancelled. Cleaning up...'; exit 1" SIGINT
+  curl -L "$DOWNLOAD_URL" --output "$APPIMAGE_DIR/$LATEST_APPIMAGE"
+  chmod +x "$APPIMAGE_DIR/$LATEST_APPIMAGE"
+
+  # Remove old AppImages, keeping only a constant number of versions
+  find "$APPIMAGE_DIR" -name "$APPIMAGE_PREFIX*$APPIMAGE_SUFFIX" \
+    | sort -r \
+    | tail -n +$((MAX_KEEP_INSTALLED_VERSIONS + 1)) \
+    | xargs rm -f
+else
+  echo "Already downloaded the latest version ($LATEST_VERSION)"
   
-#  # インストール済みかどうかを確認
-#  if [ -d "$EXTRACTED_DIR" ] && [ -x "$BIN_PATH" ] && [ -f "$DESKTOP_FILE_PATH" ]; then
-#    echo "Cursor $LATEST_VERSION は既にインストールされています。終了します。"
-#    exit 0
-#  fi
-#fi
+  # インストール済みかどうかを確認
+  if [ -d "$EXTRACTED_DIR" ] && [ -x "$BIN_PATH" ] && [ -f "$DESKTOP_FILE_PATH" ]; then
+    echo "Cursor $LATEST_VERSION は既にインストールされています。終了します。"
+    exit 0
+  fi
+fi
 
 # Step 4: Extract application binary
 rm -rf "$EXTRACTED_DIR"
