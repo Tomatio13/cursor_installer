@@ -17,6 +17,12 @@
     Ubuntu系システム向けの対話型インストールウィザード
 </p>
 
+<div align="center">
+    <img src="image/install_movie.gif" alt="Cursor Setup Wizard Demo" width="800"/>
+    <br>
+    <em>🎬 TUIウィザードのデモ動画</em>
+</div>
+
 ## ✨ 新機能 - TUIインターフェース
 
 🎨 **美しい対話型インターフェース**

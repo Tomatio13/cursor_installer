@@ -16,8 +16,7 @@ readonly WHITE='\033[1;37m'
 readonly NC='\033[0m' # No Color
 
 # Unicode symbols
-readonly CHECK_MARK="✓"
-readonly CROSS_MARK="✗"
+
 readonly ARROW="→"
 readonly SPINNER="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
@@ -60,7 +59,7 @@ check_gum() {
             echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
             sudo apt update && sudo apt install -y gum
         else
-            echo -e "${RED}${CROSS_MARK} apt package manager not found. Please install gum manually.${NC}"
+            echo -e "${RED}✗ apt package manager not found. Please install gum manually.${NC}"
             exit 1
         fi
     fi
@@ -83,65 +82,7 @@ show_header() {
         "for Cursor on Ubuntu-based systems"
 }
 
-# Display step header
-show_step() {
-    local step_num=$1
-    local step_title=$2
-    local step_desc=$3
-    
-    gum style \
-        --foreground 39 \
-        --border-foreground 39 \
-        --border normal \
-        --align left \
-        --width 60 \
-        --margin "1 0" \
-        --padding "1 2" \
-        "Step ${step_num}: ${step_title}" \
-        "${step_desc}"
-}
 
-# Display success message
-show_success() {
-    local message=$1
-    gum style \
-        --foreground 46 \
-        --border-foreground 46 \
-        --border normal \
-        --align center \
-        --width 60 \
-        --margin "1 0" \
-        --padding "1 2" \
-        "${CHECK_MARK} ${message}"
-}
-
-# Display error message
-show_error() {
-    local message=$1
-    gum style \
-        --foreground 196 \
-        --border-foreground 196 \
-        --border normal \
-        --align center \
-        --width 60 \
-        --margin "1 0" \
-        --padding "1 2" \
-        "${CROSS_MARK} ${message}"
-}
-
-# Display info message
-show_info() {
-    local message=$1
-    gum style \
-        --foreground 33 \
-        --border-foreground 33 \
-        --border normal \
-        --align center \
-        --width 60 \
-        --margin "1 0" \
-        --padding "1 2" \
-        "ℹ ${message}"
-}
 
 # =============================================================================
 # Core Functions
@@ -163,18 +104,14 @@ get_latest_download_url() {
 
 # Create required directories
 create_directories() {
-    show_step "1" "ディレクトリの作成" "必要なディレクトリを作成しています..."
-    
-    gum spin --spinner dot --title "ディレクトリを作成中..." -- bash -c "
+    gum spin --spinner dot --title "Step 1: ディレクトリを作成中..." -- bash -c "
         mkdir -p '$APPIMAGE_DIR' '$DESKTOP_DIR' '$(dirname "$SCRIPT_PATH")' '$(dirname "$ICON_PATH")' '$(dirname "$LOG_FILE_PATH")' '$(dirname "$CONFIG_FILE")'
-    "
-    
-    show_success "ディレクトリの作成が完了しました"
+    " && echo "✓ ディレクトリの作成が完了しました"
 }
 
 # Check current and latest versions
 check_versions() {
-    show_step "2" "バージョンチェック" "現在のバージョンと最新バージョンを確認しています..."
+    echo "Step 2: バージョンチェック中..."
     
     # Get current version
     local current_appimage_path
@@ -192,22 +129,12 @@ check_versions() {
     latest_appimage=$(basename "$DOWNLOAD_URL")
     LATEST_VERSION=$(echo "$latest_appimage" | sed -E "s/^$APPIMAGE_PREFIX//; s/-[a-f0-9]+$APPIMAGE_SUFFIX$//")
     
-    # Display version information
-    gum style \
-        --foreground 33 \
-        --border-foreground 33 \
-        --border normal \
-        --align left \
-        --width 60 \
-        --margin "1 0" \
-        --padding "1 2" \
-        "現在のバージョン: ${CURRENT_VERSION}" \
-        "最新バージョン: ${LATEST_VERSION}"
+    echo "✓ 現在: ${CURRENT_VERSION} | 最新: ${LATEST_VERSION}"
     
     if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ] && [ "$CURRENT_VERSION" != "未インストール" ]; then
         # Check if already fully installed
         if [ -d "$EXTRACTED_DIR" ] && [ -x "$BIN_PATH" ] && [ -f "$DESKTOP_FILE_PATH" ]; then
-            show_info "Cursor $LATEST_VERSION は既に完全にインストールされています"
+            echo "ℹ Cursor $LATEST_VERSION は既に完全にインストールされています"
             return 1
         fi
     fi
@@ -284,52 +211,42 @@ show_version_info() {
 # Download latest version
 download_cursor() {
     if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ] && [ "$CURRENT_VERSION" != "未インストール" ]; then
-        show_info "最新バージョンは既にダウンロード済みです"
+        echo "ℹ 最新バージョンは既にダウンロード済みです"
         return 0
     fi
-    
-    show_step "3" "Cursorのダウンロード" "最新バージョンをダウンロードしています..."
     
     local latest_appimage
     latest_appimage=$(basename "$DOWNLOAD_URL")
     
     # Download with progress
-    gum spin --spinner dot --title "Cursor ${LATEST_VERSION} をダウンロード中..." -- bash -c "
+    gum spin --spinner dot --title "Step 3: Cursor ${LATEST_VERSION} をダウンロード中..." -- bash -c "
         cd '$CURSOR_DIR'
-        curl -L '$DOWNLOAD_URL' --output '$APPIMAGE_DIR/$latest_appimage' --progress-bar
+        curl -L '$DOWNLOAD_URL' --output '$APPIMAGE_DIR/$latest_appimage' --silent
         chmod +x '$APPIMAGE_DIR/$latest_appimage'
-    "
+    " && echo "✓ ダウンロードが完了しました"
     
     # Clean up old versions
     gum spin --spinner dot --title "古いバージョンをクリーンアップ中..." -- bash -c "
         find '$APPIMAGE_DIR' -name '$APPIMAGE_PREFIX*$APPIMAGE_SUFFIX' | sort -r | tail -n +$((MAX_KEEP_INSTALLED_VERSIONS + 1)) | xargs rm -f
-    "
-    
-    show_success "ダウンロードが完了しました"
+    " && echo "✓ クリーンアップが完了しました"
 }
 
 # Extract application
 extract_application() {
-    show_step "4" "アプリケーションの展開" "AppImageを展開しています..."
-    
     local latest_appimage
     latest_appimage=$(basename "$DOWNLOAD_URL")
     
-    gum spin --spinner dot --title "AppImageを展開中..." -- bash -c "
+    gum spin --spinner dot --title "Step 4: AppImageを展開中..." -- bash -c "
         cd '$CURSOR_DIR'
         rm -rf '$EXTRACTED_DIR'
         '$APPIMAGE_DIR/$latest_appimage' --appimage-extract > /dev/null 2>&1
         chmod +x '$BIN_PATH'
-    "
-    
-    show_success "アプリケーションの展開が完了しました"
+    " && echo "✓ アプリケーションの展開が完了しました"
 }
 
 # Configure launcher script
 configure_launcher() {
-    show_step "5" "ランチャーの設定" "コマンドラインランチャーを設定しています..."
-    
-    gum spin --spinner dot --title "ランチャースクリプトを作成中..." -- bash -c "
+    gum spin --spinner dot --title "Step 5: ランチャースクリプトを作成中..." -- bash -c "
         cat > '$SCRIPT_PATH' << 'EOF'
 #!/bin/bash
 
@@ -344,27 +261,19 @@ fi
 > \"$LOG_FILE_PATH\" 2>&1
 EOF
         chmod +x '$SCRIPT_PATH'
-    "
-    
-    show_success "ランチャーの設定が完了しました"
+    " && echo "✓ ランチャーの設定が完了しました"
 }
 
 # Install application icon
 install_icon() {
-    show_step "6" "アイコンのインストール" "アプリケーションアイコンをインストールしています..."
-    
-    gum spin --spinner dot --title "アイコンをコピー中..." -- bash -c "
+    gum spin --spinner dot --title "Step 6: アイコンをコピー中..." -- bash -c "
         cp '$EXTRACTED_ICON_DIR/cursor.png' '$ICON_PATH'
-    "
-    
-    show_success "アイコンのインストールが完了しました"
+    " && echo "✓ アイコンのインストールが完了しました"
 }
 
 # Create desktop integration
 create_desktop_integration() {
-    show_step "7" "デスクトップ統合" "デスクトップファイルを作成しています..."
-    
-    gum spin --spinner dot --title "デスクトップファイルを作成中..." -- bash -c "
+    gum spin --spinner dot --title "Step 7: デスクトップファイルを作成中..." -- bash -c "
         cat > '$DESKTOP_FILE_PATH' << EOF
 [Desktop Entry]
 Name=Cursor
@@ -378,20 +287,14 @@ MimeType=x-scheme-handler/cursor;
 Categories=Utility;Development
 EOF
         chmod +x '$DESKTOP_FILE_PATH'
-    "
-    
-    show_success "デスクトップ統合が完了しました"
+    " && echo "✓ デスクトップ統合が完了しました"
 }
 
 # Update desktop database
 update_desktop_database() {
-    show_step "8" "システム更新" "デスクトップデータベースを更新しています..."
-    
-    gum spin --spinner dot --title "デスクトップデータベースを更新中..." -- bash -c "
+    gum spin --spinner dot --title "Step 8: デスクトップデータベースを更新中..." -- bash -c "
         update-desktop-database '$DESKTOP_DIR'
-    "
-    
-    show_success "システム更新が完了しました"
+    " && echo "✓ システム更新が完了しました"
 }
 
 # Save configuration
@@ -403,7 +306,7 @@ LAST_INSTALLED_VERSION=$LATEST_VERSION
 INSTALLATION_DATE=$(date '+%Y-%m-%d %H:%M:%S')
 DOWNLOAD_URL=$DOWNLOAD_URL
 EOF
-    "
+    " && echo "✓ 設定を保存しました"
 }
 
 # =============================================================================
@@ -419,29 +322,16 @@ run_full_installation() {
     fi
     
     create_directories
-    sleep 1
-    
     download_cursor
-    sleep 1
-    
     extract_application
-    sleep 1
-    
     configure_launcher
-    sleep 1
-    
     install_icon
-    sleep 1
-    
     create_desktop_integration
-    sleep 1
-    
     update_desktop_database
-    sleep 1
-    
     save_configuration
     
     # Final success message
+    echo ""
     gum style \
         --foreground 46 \
         --border-foreground 46 \
@@ -461,35 +351,28 @@ run_full_installation() {
 # Reconfigure existing installation
 reconfigure_installation() {
     show_header
-    show_info "既存のインストールを再設定しています..."
+    echo "既存のインストールを再設定しています..."
     
     configure_launcher
-    sleep 1
-    
     install_icon
-    sleep 1
-    
     create_desktop_integration
-    sleep 1
-    
     update_desktop_database
-    sleep 1
     
-    show_success "再設定が完了しました"
+    echo "🎉 再設定が完了しました"
 }
 
 # Add CLI command only
 add_cli_command() {
     show_header
-    show_info "CLIコマンドを追加しています..."
+    echo "CLIコマンドを追加しています..."
     
     if [ ! -x "$BIN_PATH" ]; then
-        show_error "Cursorがインストールされていません。まず完全インストールを実行してください。"
+        echo "❌ Cursorがインストールされていません。まず完全インストールを実行してください。"
         return 1
     fi
     
     configure_launcher
-    show_success "CLIコマンドの追加が完了しました"
+    echo "🎉 CLIコマンドの追加が完了しました"
 }
 
 # =============================================================================

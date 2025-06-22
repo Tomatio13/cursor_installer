@@ -17,6 +17,12 @@
     Interactive installation wizard for Ubuntu-based systems
 </p>
 
+<div align="center">
+    <img src="image/install_movie.gif" alt="Cursor Setup Wizard Demo" width="800"/>
+    <br>
+    <em>🎬 TUI Wizard Demo</em>
+</div>
+
 ## ✨ New Features - TUI Interface
 
 🎨 **Beautiful Interactive Interface**
