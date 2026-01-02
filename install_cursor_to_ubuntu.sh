@@ -90,16 +90,29 @@ show_header() {
 
 # Get latest download URL from GitHub
 get_latest_download_url() {
-    gum spin --spinner dot --title "最新のダウンロードURLを取得中..." -- bash -c '
-        readme_content=$(curl -s "https://raw.githubusercontent.com/oslook/cursor-ai-downloads/main/README.md")
-        download_url=$(echo "$readme_content" | grep -oE "https://downloads\.cursor\.com/production/[^\"]*linux/x64/[^\"]*\.AppImage" | head -n 1 | sed "s/^[0-9]*://")
-        
-        if [ -z "$download_url" ]; then
-            echo "https://downloads.cursor.com/production/ef5eeb47a684b4c217dfaf0463aa7ea952f8ab95/linux/x64/Cursor-1.1.5-x86_64.AppImage"
+    gum spin --spinner dot --title "最新のダウンロードURLを取得中..." -- bash -c "
+        readme_content=\$(curl -s 'https://raw.githubusercontent.com/oslook/cursor-ai-downloads/main/README.md')
+        download_url=\$(
+            echo \"\$readme_content\" \
+            | grep -oE 'https://downloads\.cursor\.com/production/[^\"]*linux/x64/[^\"]*\.AppImage' \
+            | awk -F/ '{
+                file=\$NF;
+                if (match(file, /Cursor-([0-9]+\.[0-9]+\.[0-9]+)-.*\.AppImage/, m)) {
+                    print m[1] \"\t\" \$0;
+                }
+            }' \
+            | sort -V \
+            | tail -n 1 \
+            | cut -f2- \
+            | sed 's/^[0-9]*://'
+        )
+
+        if [ -z \"\$download_url\" ]; then
+            echo 'https://downloads.cursor.com/production/ef5eeb47a684b4c217dfaf0463aa7ea952f8ab95/linux/x64/Cursor-1.1.5-x86_64.AppImage'
         else
-            echo "$download_url"
+            echo \"\$download_url\"
         fi
-    '
+    "
 }
 
 # Create required directories
